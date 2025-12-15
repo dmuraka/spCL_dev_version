@@ -466,7 +466,7 @@ cf_lm_hv     <- function(y, x, coords, train_rat=0.75,
 }
 
 ######################################################
-### Coarse-to-Local linear spatial modeling (cf_lm) 
+### Coarse-to-Fine spatial modeling (CFSM) 
 #
 # cf_lm(y, x, coords, x0=NULL, coords0=NULL, mod_hv)
 #
@@ -778,5 +778,6 @@ cf_lm_sim    <- function(mod, nsim=200, pred_sample=FALSE, pred0_sample=FALSE,
   return(list(pred=pred_ms,pred0=pred0_ms,pred_qt=pred_qt,pred0_qt=pred0_qt,
               Pred_sim=Pred_sim,Pred0_sim=Pred0_sim))
 }
+
 
 
