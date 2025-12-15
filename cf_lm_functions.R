@@ -88,7 +88,7 @@ bopt_core   <- function(par, bands, BBBB, beta_int, is_vc,
 ### Single-scale spatial process modeling via local model aggregation (gPoE)
 lwr         <- function(coords, resid, x, band, b_old, i_hat, vc,ridge, coords_old=NULL,
                         kernel,hetero,id_train,y,beta=NULL,coords0,x0, 
-                        sel_id=NULL,func="lamp"){
+                        sel_id=NULL,func="cf_lm"){
   
   n            <- nrow(coords)
   nx           <- ncol(x)
@@ -213,7 +213,7 @@ lwr         <- function(coords, resid, x, band, b_old, i_hat, vc,ridge, coords_o
   
   ################# selection of vc through CV
   run            <- FALSE
-  if( func == "lamp_hv" ){
+  if( func == "cf_lm_hv" ){
     b_all_sel    <- b_all[-id_train,vc,drop=FALSE]/pv_inv_all[-id_train,vc,drop=FALSE]
     b_all_sel[is.nan(b_all_sel)]<-0
     pred_hv      <- rowSums(x[-id_train,vc,drop=FALSE]*b_all_sel)
@@ -278,7 +278,7 @@ lwr         <- function(coords, resid, x, band, b_old, i_hat, vc,ridge, coords_o
 ###########################################################
 ### Holdout validation optimizing the number of resolutions 
 #
-# lamp_hv(y, x, coords, train_rat=0.75,alpha=0.9, ridge=TRUE, kernel="exp", rf=FALSE)
+# cf_lm_hv(y, x, coords, train_rat=0.75,alpha=0.9, ridge=TRUE, kernel="exp", rf=FALSE)
 #
 ### input
 # y        : Data vector
@@ -296,10 +296,10 @@ lwr         <- function(coords, resid, x, band, b_old, i_hat, vc,ridge, coords_o
 # param    : Internal parameters
 # sse_hv   : Sum of squares error for the validation samples
 
-lamp_hv     <- function(y, x, coords, train_rat=0.75,
+cf_lm_hv     <- function(y, x, coords, train_rat=0.75,
                         alpha=0.9, ridge=TRUE, kernel="exp", rf=FALSE){
   init           <- initial_fun(x=x,y=y,coords=coords,train_rat=train_rat,
-                                x_sel=NULL,func="lamp_hv")
+                                x_sel=NULL,func="cf_lm_hv")
   xx_inv         <- init$xx_inv
   beta_int       <- init$beta_int
   beta           <- init$beta
@@ -334,7 +334,7 @@ lamp_hv     <- function(y, x, coords, train_rat=0.75,
     lmod         <- lwr(coords=coords, resid=resid, x=x, band=band, coords_old=coords_old,
                         b_old=b_old,vc=vc, id_train=id_train,ridge=ridge, kernel=kernel,
                         beta=beta,y=y, coords0=NULL, x0=NULL, sel_id=NULL,
-                        hetero=hetero,func="lamp_hv")
+                        hetero=hetero,func="cf_lm_hv")
     run          <- lmod$run
     if(run==TRUE){
       bands      <- c(bands, band)
@@ -466,9 +466,9 @@ lamp_hv     <- function(y, x, coords, train_rat=0.75,
 }
 
 ######################################################
-### Local aggregate multiscale process (LAMP) modeling 
+### Coarse-to-Local linear spatial modeling (cf_lm) 
 #
-# lamp(y, x, coords, x0=NULL, coords0=NULL, mod_hv)
+# cf_lm(y, x, coords, x0=NULL, coords0=NULL, mod_hv)
 #
 ### input
 # y        : Data vector
@@ -476,7 +476,7 @@ lamp_hv     <- function(y, x, coords, train_rat=0.75,
 # coords   : Matrix of 2-dimensional point coordinates
 # x0       : Matrix of covariates at prediction sites
 # coords0  : Matrix of 2-dimensional point coordinates at prediction sites
-# mod_hv   : Output object of the lamp_hv function
+# mod_hv   : Output object of the cf_lm_hv function
 #
 ### output
 # beta     : Regression coefficients and their standard errors
@@ -488,7 +488,7 @@ lamp_hv     <- function(y, x, coords, train_rat=0.75,
 # BBB0v    : Variance of the spatial process in each resolution (prediction sites; list) 
 # param    : Internal parameters
 
-lamp        <- function(y, x, coords, x0=NULL, coords0=NULL, mod_hv){
+cf_lm        <- function(y, x, coords, x0=NULL, coords0=NULL, mod_hv){
   
   bands          <- mod_hv$param$bands
   vpar           <- mod_hv$param$vpar
@@ -504,7 +504,7 @@ lamp        <- function(y, x, coords, x0=NULL, coords0=NULL, mod_hv){
   kernel         <- mod_hv$param$kernel
   rf             <- mod_hv$param$rf
   
-  init           <- initial_fun(x=x,y=y,coords=coords,x_sel=x_sel,func="lamp",train_rat=1)
+  init           <- initial_fun(x=x,y=y,coords=coords,x_sel=x_sel,func="cf_lm",train_rat=1)
   xx_inv         <- init$xx_inv
   beta_int       <- init$beta_int
   beta           <- init$beta
@@ -536,7 +536,7 @@ lamp        <- function(y, x, coords, x0=NULL, coords0=NULL, mod_hv){
       vc           <- which(VCmat[i,]==1)
       lmod         <- lwr(coords=coords, resid=resid, x=x, band=bands[i], hetero=hetero,
                           b_old=b_old, vc=vc, id_train=id_train,ridge=ridge,kernel=kernel,
-                          x0=x0, coords0=coords0, sel_id=sel_id_list[[i]], func="lamp")
+                          x0=x0, coords0=coords0, sel_id=sel_id_list[[i]], func="cf_lm")
       beta_add     <- lmod$beta
       beta_v_add   <- lmod$beta_v
       beta_v_add[is.infinite(beta_v_add)]<-0
@@ -643,11 +643,11 @@ lamp        <- function(y, x, coords, x0=NULL, coords0=NULL, mod_hv){
 ######################################################
 ### Simulation evaluating standard deviation and percentiles of the prediction
 #
-# lamp_sim(mod, nsim=200, pred_sample=FALSE, pred0_sample=FALSE,
+# cf_lm_sim(mod, nsim=200, pred_sample=FALSE, pred0_sample=FALSE,
 #          probs=c(0.025,0.5,0.975))
 #
 ### input
-# mod         : Output object of the lamp function   
+# mod         : Output object of the cf_lm function   
 # nsim        : Number of Monte Carlo simulations
 # pred_sample : If TRUE, simulated predictive values at sample sites are returned
 # pred0_sample: If TRUE, simulated predictive values at prediction sites are returned
@@ -662,7 +662,7 @@ lamp        <- function(y, x, coords, x0=NULL, coords0=NULL, mod_hv){
 # Pred_sim    : Matrix of nsim simulated predictive values (sample sites)
 # Pred0_sim   : Matrix of nsim simulated predictive values (prediction sites)
 
-lamp_sim    <- function(mod, nsim=200, pred_sample=FALSE, pred0_sample=FALSE,
+cf_lm_sim    <- function(mod, nsim=200, pred_sample=FALSE, pred0_sample=FALSE,
                         probs=c(0.025,0.5,0.975)){
   
   n            <- mod$param$n
@@ -687,7 +687,7 @@ lamp_sim    <- function(mod, nsim=200, pred_sample=FALSE, pred0_sample=FALSE,
   n_band_x     <- apply(mod$param$VCmat,2,function(x) sum(x==1))
   
   ######### Functions
-  sim_lamp_fun <- function(BBB, BBBv, x, n, nx,nsim,n_band_x, beta_int, beta_int_se,
+  sim_cf_lm_fun <- function(BBB, BBBv, x, n, nx,nsim,n_band_x, beta_int, beta_int_se,
                          vpar,vc,bands,sig){
     BBB_sim      <- BBB
     Pred_sim     <- matrix(0, nrow = n , ncol = nsim, byrow = TRUE)
@@ -744,7 +744,7 @@ lamp_sim    <- function(mod, nsim=200, pred_sample=FALSE, pred0_sample=FALSE,
   }
   
   ######### Simulation for sapmle sites
-  Pred_sim <- sim_lamp_fun(BBB=mod$BBB, BBBv=mod$BBBv, x=x, n=n, nx=nx, nsim=nsim, 
+  Pred_sim <- sim_cf_lm_fun(BBB=mod$BBB, BBBv=mod$BBBv, x=x, n=n, nx=nx, nsim=nsim, 
                         n_band_x=n_band_x,beta_int=beta_int, beta_int_se=beta_int_se,
                         vpar=vpar,vc=vc,bands=bands,sig=sig)$Pred_sim
   if(!is.null(rf_mod)){
@@ -761,7 +761,7 @@ lamp_sim    <- function(mod, nsim=200, pred_sample=FALSE, pred0_sample=FALSE,
   ######### Simulation for prediction sites
   pred0_ms   <- pred0_qt <- Pred0_sim <- NULL
   if( !is.na(n0) ){
-    Pred0_sim  <- sim_lamp_fun(BBB=mod$BBB0, BBBv=mod$BBB0v, x=x0, n=n0, nx=nx, nsim=nsim, 
+    Pred0_sim  <- sim_cf_lm_fun(BBB=mod$BBB0, BBBv=mod$BBB0v, x=x0, n=n0, nx=nx, nsim=nsim, 
                               n_band_x=n_band_x,beta_int=beta_int, beta_int_se=beta_int_se,
                               vpar=vpar,vc=vc,bands=bands,sig=sig)$Pred_sim
     if(!is.null(rf_mod)){
@@ -778,4 +778,5 @@ lamp_sim    <- function(mod, nsim=200, pred_sample=FALSE, pred0_sample=FALSE,
   return(list(pred=pred_ms,pred0=pred0_ms,pred_qt=pred_qt,pred0_qt=pred0_qt,
               Pred_sim=Pred_sim,Pred0_sim=Pred0_sim))
 }
+
 
