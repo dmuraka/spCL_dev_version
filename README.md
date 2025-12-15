@@ -1,9 +1,8 @@
-# spLAMP (dev version): Spatial modeling via Local Aggregate Multiscale Process (LAMP)
-R codes for spatial prediction and uncertainty modeling using the Local Aggregate Multiscale Process (LAMP), a fast, validation-based spatial process model:
-- lamp_functions.R: Main and internal functions
+# spCL (dev version): Coarse-to-Fine spatial modeling
+R functions for spatial prediction and uncertainty modeling using coarse-to-fine spatial modeling (CFSM), a fast, validation-based framework that can be readily integrated with existing machine learning algorithms (e.g., random forests):
+- cf_lm.R   : Main function to implement the CFSM
+- cf_lm_hv.R: Holdout validation for optimizing the model
+- internal_utils.R: Internal functions
 - sample_code.R   : Sample code for spatial prediction using meuse data.
 
-To get started, run sample_code.R. The R package spLAMP is currently under development and will be released on CRAN in near future, once additional functionality has been implemented.
-
-
-Reference (To appear)
+The R package spCL is currently under development and will be released on CRAN in near future.
